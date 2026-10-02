@@ -25,6 +25,7 @@
     var timer = null;
     var clickCount = 0;
     var hotkeyCapture = false;
+    var toggleKeyDown = false;
     var visibilityHotkeyCapture = false;
     var pickingPosition = false;
     var panelVisible = false;
@@ -436,7 +437,7 @@
             this.textContent = "PRESS KEY...";
         });
 
-        document.addEventListener("keydown", function (event) {
+        window.addEventListener("keydown", function (event) {
             if (event.code === "AltRight") {
                 rightAltPressed = true;
                 return;
@@ -463,21 +464,40 @@
                 return;
             }
 
-            if (event.key === state.hotkey) {
-                var tag = event.target && event.target.tagName ?
-                    event.target.tagName.toLowerCase() : "";
+            var pressedHotkey = event.key === state.hotkey || event.code === state.hotkey;
+            var tag = event.target && event.target.tagName ?
+                event.target.tagName.toLowerCase() : "";
+            var editable = tag === "input" || tag === "textarea" || tag === "select" ||
+                (event.target && event.target.isContentEditable);
 
-                if (tag !== "input" && tag !== "textarea" && tag !== "select") {
+            if (pressedHotkey && !editable) {
+                // Ignore OS/browser key-repeat. A held key must only toggle once.
+                if (event.repeat || toggleKeyDown) {
                     event.preventDefault();
-                    toggle();
+                    return;
                 }
+
+                toggleKeyDown = true;
+                event.preventDefault();
+                event.stopPropagation();
+                toggle();
             }
         });
 
-        document.addEventListener("keyup", function (event) {
+        window.addEventListener("keyup", function (event) {
             if (event.code === "AltRight") {
                 rightAltPressed = false;
             }
+
+            if (event.key === state.hotkey || event.code === state.hotkey) {
+                toggleKeyDown = false;
+            }
+        });
+
+        window.addEventListener("blur", function () {
+            rightAltPressed = false;
+            toggleKeyDown = false;
+            hotkeyCapture = false;
         });
 
         updateUI();
