@@ -1,0 +1,204 @@
+/* CaseClicker built-in autoclicker */
+.case-clicker-autoclicker {
+    position: fixed;
+    right: 18px;
+    top: 68px;
+    z-index: 9999;
+    width: 330px;
+    color: #fff;
+    background: rgba(10, 16, 19, 0.98);
+    border: 1px solid #186144;
+    border-radius: 5px;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.45);
+    font-family: "Open Sans", Arial, sans-serif;
+    overflow: hidden;
+}
+
+.case-clicker-autoclicker.active {
+    box-shadow: 0 0 20px rgba(37, 121, 59, 0.35), 0 12px 35px rgba(0, 0, 0, 0.45);
+}
+
+.case-clicker-autoclicker.collapsed .acBody {
+    display: none;
+}
+
+.acHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 52px;
+    padding: 8px 10px 8px 14px;
+    background: #101619;
+    border-bottom: 1px solid #186144;
+}
+
+.acTitle {
+    color: #fff;
+    font-family: "Rajdhani", sans-serif;
+    font-size: 21px;
+    letter-spacing: 1px;
+}
+
+.acSubtitle {
+    color: #5b6d73;
+    font-size: 10px;
+    margin-top: 2px;
+}
+
+.acIconButton,
+.acHotkeyButton,
+.acSmallButton,
+.acMainButton {
+    font-family: "Rajdhani", sans-serif;
+    cursor: pointer;
+    border: 1px solid #25793b;
+    color: #fff;
+    background: #0e382c;
+}
+
+.acIconButton {
+    width: 30px;
+    height: 30px;
+    font-size: 20px;
+    line-height: 24px;
+    border-radius: 3px;
+}
+
+.acIconButton:hover,
+.acHotkeyButton:hover,
+.acSmallButton:hover,
+.acMainButton:hover {
+    background: #186144;
+}
+
+.acBody {
+    padding: 12px;
+}
+
+.acStatusRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    color: #718087;
+    font-size: 12px;
+}
+
+.acStatusRow strong {
+    color: #59bb32;
+    font-family: "Rajdhani", sans-serif;
+    letter-spacing: 1px;
+}
+
+.acMainButton {
+    width: 100%;
+    height: 42px;
+    border-radius: 4px;
+    font-size: 18px;
+    letter-spacing: .5px;
+    margin-bottom: 12px;
+    background: linear-gradient(#1d7751, #0e382c);
+}
+
+.acMainButton.running {
+    background: linear-gradient(#8a3b3b, #4d2020);
+    border-color: #a94d4d;
+}
+
+.acMainButton.running:hover {
+    background: linear-gradient(#a94b4b, #5b2525);
+}
+
+.acGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+}
+
+.acGrid label {
+    color: #718087;
+    font-size: 10px;
+}
+
+.acGrid input {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    height: 31px;
+    margin-top: 4px;
+    padding: 4px 7px;
+    color: #fff;
+    background: #090d10;
+    border: 1px solid #26363c;
+    border-radius: 3px;
+}
+
+.acGrid input:focus {
+    border-color: #25793b;
+    outline: none;
+}
+
+.acCheckbox {
+    display: flex !important;
+    align-items: center;
+    gap: 5px;
+    height: 31px;
+    margin-top: 16px;
+}
+
+.acCheckbox input {
+    width: auto;
+    height: auto;
+    margin: 0;
+}
+
+.acHotkeyRow,
+.acBottomRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid #1d292e;
+    color: #718087;
+    font-size: 11px;
+}
+
+.acHotkeyButton {
+    min-width: 85px;
+    height: 30px;
+    padding: 0 10px;
+    border-radius: 3px;
+}
+
+.acHotkeyButton.listening {
+    border-color: #59bb32;
+    color: #59bb32;
+}
+
+.acSmallButton {
+    height: 28px;
+    padding: 0 9px;
+    border-radius: 3px;
+    font-size: 12px;
+}
+
+.acBottomRow strong {
+    color: #fff;
+}
+
+.acHint {
+    color: #536168;
+    font-size: 9px;
+    line-height: 14px;
+    margin-top: 10px;
+}
+
+@media only screen and (max-width: 800px) {
+    .case-clicker-autoclicker {
+        right: 8px;
+        top: 58px;
+        width: min(330px, calc(100vw - 16px));
+    }
+}
