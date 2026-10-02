@@ -1,25 +1,31 @@
-/* CaseClicker - Built-in Autoclicker
- * Uses the game's existing #case click target so autoclicks follow the same
- * code path as normal player clicks.
+/* CaseClicker - Browser Autoclicker
+ * Current cursor or fixed position, like a desktop autoclicker.
+ * Browser limitation: clicks can only be synthesized inside this webpage.
  */
 (function () {
     "use strict";
 
-    var STORAGE_KEY = "caseClicker.autoclicker.v1";
-
+    var STORAGE_KEY = "caseClicker.autoclicker.v2";
     var defaults = {
         enabled: false,
         interval: 250,
-        burst: 1,
-        variance: 0,
-        autoStart: false,
-        hotkey: "F6"
+        button: "left",
+        clickType: "single",
+        locationMode: "current",
+        pickedX: 0,
+        pickedY: 0,
+        repeatMode: "infinite",
+        repeatCount: 100,
+        hotkey: "F6",
+        autoStart: false
     };
 
     var state = loadState();
     var timer = null;
     var clickCount = 0;
     var hotkeyCapture = false;
+    var mouseX = 0;
+    var mouseY = 0;
 
     function loadState() {
         try {
@@ -39,91 +45,134 @@
         return Math.max(min, Math.min(max, value));
     }
 
-    function getNumber(id, fallback) {
-        var value = Number(document.getElementById(id).value);
+    function number(id, fallback) {
+        var input = document.getElementById(id);
+        var value = input ? Number(input.value) : fallback;
         return Number.isFinite(value) ? value : fallback;
     }
 
-    function closeRewardModal() {
-        var modal = document.querySelector(".modalWindow");
+    function updatePointer(event) {
+        mouseX = event.clientX;
+        mouseY = event.clientY;
 
-        if (!modal) {
-            return false;
+        var pointer = document.getElementById("acPointer");
+        if (pointer) {
+            pointer.textContent = Math.round(mouseX) + ", " + Math.round(mouseY);
         }
 
-        var style = window.getComputedStyle(modal);
-        var visible = style.display !== "none" && style.visibility !== "hidden";
-
-        if (!visible) {
-            return false;
-        }
-
-        var closeButton = modal.querySelector(".modalClose");
-
-        if (closeButton) {
-            if (window.jQuery) {
-                window.jQuery(closeButton).trigger("click");
-            } else {
-                closeButton.click();
+        if (state.locationMode === "current") {
+            var target = document.getElementById("acTarget");
+            if (target) {
+                target.textContent = "Current cursor (" +
+                    Math.round(mouseX) + ", " + Math.round(mouseY) + ")";
             }
-        } else {
-            modal.style.display = "none";
         }
-
-        return true;
     }
 
-    function isGameReady() {
-        var caseElement = document.getElementById("case");
+    function getPoint() {
+        if (state.locationMode === "picked") {
+            return {
+                x: clamp(Number(state.pickedX) || 0, 0, window.innerWidth - 1),
+                y: clamp(Number(state.pickedY) || 0, 0, window.innerHeight - 1)
+            };
+        }
 
-        if (!caseElement) {
+        return { x: mouseX, y: mouseY };
+    }
+
+    function getTarget(point) {
+        var panel = document.getElementById("caseClickerAutoclicker");
+        var element;
+
+        if (panel && panel.contains(document.elementFromPoint(point.x, point.y))) {
+            panel.style.pointerEvents = "none";
+            element = document.elementFromPoint(point.x, point.y);
+            panel.style.pointerEvents = "";
+        } else {
+            element = document.elementFromPoint(point.x, point.y);
+        }
+
+        return element;
+    }
+
+    function mouseEvent(type, point, button, detail) {
+        return new MouseEvent(type, {
+            bubbles: true,
+            cancelable: true,
+            view: window,
+            clientX: point.x,
+            clientY: point.y,
+            screenX: point.x,
+            screenY: point.y,
+            button: button,
+            buttons: button === 0 ? 1 : button === 1 ? 4 : 2,
+            detail: detail || 1
+        });
+    }
+
+    function clickElement(element, point) {
+        if (!element) {
             return false;
         }
 
-        // The original game opens a reward modal after every successful case.
-        // Close it first so the next automated case can actually be opened.
-        if (closeRewardModal()) {
-            return false;
+        var button = state.button === "right" ? 2 :
+            state.button === "middle" ? 1 : 0;
+
+        element.dispatchEvent(mouseEvent("mousedown", point, button));
+        element.dispatchEvent(mouseEvent("mouseup", point, button));
+
+        if (button === 2) {
+            element.dispatchEvent(mouseEvent("contextmenu", point, button));
+        } else {
+            element.dispatchEvent(mouseEvent("click", point, button, 1));
+
+            if (state.clickType === "double") {
+                element.dispatchEvent(mouseEvent("mousedown", point, button, 2));
+                element.dispatchEvent(mouseEvent("mouseup", point, button, 2));
+                element.dispatchEvent(mouseEvent("click", point, button, 2));
+                element.dispatchEvent(mouseEvent("dblclick", point, button, 2));
+            }
         }
 
         return true;
     }
 
     function performClick() {
-        var caseElement = document.getElementById("case");
+        var point = getPoint();
 
-        if (!caseElement || !isGameReady()) {
+        if (
+            point.x < 0 || point.y < 0 ||
+            point.x >= window.innerWidth ||
+            point.y >= window.innerHeight
+        ) {
             return false;
         }
 
-        // The original game registers $("#case").click(...), so jQuery's
-        // event path is the most reliable way to invoke the real game logic.
-        if (window.jQuery) {
-            window.jQuery(caseElement).trigger("click");
-        } else {
-            caseElement.click();
+        var element = getTarget(point);
+
+        if (!element) {
+            return false;
         }
 
-        clickCount += 1;
+        if (clickElement(element, point)) {
+            clickCount += state.clickType === "double" ? 2 : 1;
 
-        var countElement = document.getElementById("acClickCount");
-        if (countElement) {
-            countElement.textContent = clickCount.toLocaleString();
+            var count = document.getElementById("acClickCount");
+            if (count) {
+                count.textContent = clickCount.toLocaleString();
+            }
+
+            var last = document.getElementById("acLastTarget");
+            if (last) {
+                last.textContent =
+                    (element.id ? "#" + element.id : element.tagName.toLowerCase()) +
+                    " @ " + Math.round(point.x) + ", " + Math.round(point.y);
+            }
+
+            return true;
         }
 
-        return true;
-    }
-
-    function nextDelay() {
-        var base = clamp(Number(state.interval) || defaults.interval, 50, 10000);
-        var variance = clamp(Number(state.variance) || 0, 0, 100);
-
-        if (!variance) {
-            return base;
-        }
-
-        var multiplier = 1 + ((Math.random() * 2 - 1) * (variance / 100));
-        return Math.max(50, Math.round(base * multiplier));
+        return false;
     }
 
     function scheduleNext() {
@@ -132,17 +181,15 @@
             return;
         }
 
-        timer = window.setTimeout(function () {
-            if (state.enabled) {
-                for (var i = 0; i < state.burst; i += 1) {
-                    if (!performClick()) {
-                        break;
-                    }
-                }
-            }
+        if (state.repeatMode === "count" && clickCount >= state.repeatCount) {
+            stop();
+            return;
+        }
 
+        timer = window.setTimeout(function () {
+            performClick();
             scheduleNext();
-        }, nextDelay());
+        }, clamp(Math.round(Number(state.interval) || 250), 1, 10000));
     }
 
     function start() {
@@ -151,10 +198,9 @@
         }
 
         state.enabled = true;
+        clickCount = 0;
         saveState();
         updateUI();
-
-        // Do not make the user wait for the first interval.
         performClick();
         scheduleNext();
     }
@@ -179,39 +225,68 @@
         }
     }
 
-    function updateSettingsFromUI() {
-        state.interval = clamp(Math.round(getNumber("acInterval", defaults.interval)), 50, 10000);
-        state.burst = clamp(Math.round(getNumber("acBurst", defaults.burst)), 1, 50);
-        state.variance = clamp(Math.round(getNumber("acVariance", defaults.variance)), 0, 100);
+    function updateSettings() {
+        state.interval = clamp(Math.round(number("acInterval", 250)), 1, 10000);
+        state.button = document.getElementById("acButton").value;
+        state.clickType = document.getElementById("acClickType").value;
+        state.locationMode = document.getElementById("acLocationMode").value;
+        state.repeatMode = document.getElementById("acRepeatMode").value;
+        state.repeatCount = clamp(Math.round(number("acRepeatCount", 100)), 1, 1000000);
         state.autoStart = document.getElementById("acAutoStart").checked;
-        saveState();
 
-        document.getElementById("acInterval").value = state.interval;
-        document.getElementById("acBurst").value = state.burst;
-        document.getElementById("acVariance").value = state.variance;
+        if (state.locationMode === "picked") {
+            state.pickedX = clamp(Math.round(number("acPickedX", 0)), 0, window.innerWidth - 1);
+            state.pickedY = clamp(Math.round(number("acPickedY", 0)), 0, window.innerHeight - 1);
+        }
+
+        saveState();
+        updateUI();
     }
 
     function updateUI() {
         var panel = document.getElementById("caseClickerAutoclicker");
-        var button = document.getElementById("acToggle");
-
-        if (!panel || !button) {
+        if (!panel) {
             return;
         }
 
+        document.getElementById("acStatus").textContent = state.enabled ? "RUNNING" : "STOPPED";
+
+        var toggle = document.getElementById("acToggle");
+        toggle.textContent = state.enabled ? "STOP" : "START";
+        toggle.classList.toggle("running", state.enabled);
         panel.classList.toggle("active", state.enabled);
-        button.textContent = state.enabled ? "STOP AUTOCLICKER" : "START AUTOCLICKER";
-        button.classList.toggle("running", state.enabled);
 
-        var status = document.getElementById("acStatus");
-        if (status) {
-            status.textContent = state.enabled ? "RUNNING" : "STOPPED";
-        }
+        document.getElementById("acInterval").value = state.interval;
+        document.getElementById("acButton").value = state.button;
+        document.getElementById("acClickType").value = state.clickType;
+        document.getElementById("acLocationMode").value = state.locationMode;
+        document.getElementById("acRepeatMode").value = state.repeatMode;
+        document.getElementById("acRepeatCount").value = state.repeatCount;
+        document.getElementById("acPickedX").value = state.pickedX;
+        document.getElementById("acPickedY").value = state.pickedY;
+        document.getElementById("acAutoStart").checked = state.autoStart;
 
-        var hotkey = document.getElementById("acHotkey");
-        if (hotkey && !hotkeyCapture) {
-            hotkey.textContent = state.hotkey || "None";
+        document.getElementById("acPickedSettings").style.display =
+            state.locationMode === "picked" ? "grid" : "none";
+        document.getElementById("acRepeatCountRow").style.display =
+            state.repeatMode === "count" ? "block" : "none";
+
+        document.getElementById("acTarget").textContent =
+            state.locationMode === "picked"
+                ? "Fixed position (" + state.pickedX + ", " + state.pickedY + ")"
+                : "Current cursor (" + Math.round(mouseX) + ", " + Math.round(mouseY) + ")";
+
+        if (!hotkeyCapture) {
+            document.getElementById("acHotkey").textContent = state.hotkey;
         }
+    }
+
+    function useCurrentCursor() {
+        state.pickedX = Math.round(mouseX);
+        state.pickedY = Math.round(mouseY);
+        state.locationMode = "picked";
+        saveState();
+        updateUI();
     }
 
     function buildUI() {
@@ -225,61 +300,52 @@
 
         panel.innerHTML =
             '<div class="acHeader">' +
-                '<div>' +
-                    '<div class="acTitle">AUTOCLICKER</div>' +
-                    '<div class="acSubtitle">Built into CaseClicker</div>' +
-                '</div>' +
-                '<button type="button" id="acMinimize" class="acIconButton" aria-label="Minimize">−</button>' +
+                '<div><div class="acTitle">AUTOCLICKER</div>' +
+                '<div class="acSubtitle">Current cursor / fixed position</div></div>' +
+                '<button type="button" id="acMinimize" class="acIconButton">−</button>' +
             '</div>' +
             '<div class="acBody">' +
-                '<div class="acStatusRow">' +
-                    '<span>Status</span>' +
-                    '<strong id="acStatus">STOPPED</strong>' +
-                '</div>' +
-                '<button type="button" id="acToggle" class="acMainButton">START AUTOCLICKER</button>' +
+                '<div class="acStatusRow"><span>Status</span><strong id="acStatus">STOPPED</strong></div>' +
+                '<button type="button" id="acToggle" class="acMainButton">START</button>' +
+                '<div class="acTargetBox">Target: <strong id="acTarget">Current cursor (0, 0)</strong>' +
+                '<br><small>Pointer: <span id="acPointer">0, 0</span></small></div>' +
                 '<div class="acGrid">' +
-                    '<label>Delay (ms)' +
-                        '<input id="acInterval" type="number" min="50" max="10000" step="10">' +
-                    '</label>' +
-                    '<label>Burst clicks' +
-                        '<input id="acBurst" type="number" min="1" max="50" step="1">' +
-                    '</label>' +
-                    '<label>Random variance (%)' +
-                        '<input id="acVariance" type="number" min="0" max="100" step="1">' +
-                    '</label>' +
-                    '<label class="acCheckbox">' +
-                        '<input id="acAutoStart" type="checkbox">' +
-                        ' Auto-start on load' +
-                    '</label>' +
+                    '<label>Click interval (ms)<input id="acInterval" type="number" min="1" max="10000" step="1"></label>' +
+                    '<label>Mouse button<select id="acButton"><option value="left">Left</option><option value="right">Right</option><option value="middle">Middle</option></select></label>' +
+                    '<label>Click type<select id="acClickType"><option value="single">Single</option><option value="double">Double</option></select></label>' +
+                    '<label>Click position<select id="acLocationMode"><option value="current">Current cursor</option><option value="picked">Fixed position</option></select></label>' +
                 '</div>' +
-                '<div class="acHotkeyRow">' +
-                    '<span>Start/stop hotkey</span>' +
-                    '<button type="button" id="acHotkey" class="acHotkeyButton"></button>' +
+                '<div id="acPickedSettings" class="acGrid">' +
+                    '<label>X<input id="acPickedX" type="number" min="0" step="1"></label>' +
+                    '<label>Y<input id="acPickedY" type="number" min="0" step="1"></label>' +
+                    '<button type="button" id="acPickHere" class="acSmallButton">USE CURRENT CURSOR</button>' +
                 '</div>' +
-                '<div class="acBottomRow">' +
-                    '<span>Autoclicks this session: <strong id="acClickCount">0</strong></span>' +
-                    '<button type="button" id="acClickNow" class="acSmallButton">CLICK NOW</button>' +
+                '<div class="acGrid">' +
+                    '<label>Repeat<select id="acRepeatMode"><option value="infinite">Until stopped</option><option value="count">Number of clicks</option></select></label>' +
+                    '<label id="acRepeatCountRow">Click count<input id="acRepeatCount" type="number" min="1" max="1000000" step="1"></label>' +
                 '</div>' +
-                '<div class="acHint">The autoclicker waits for the normal case screen before clicking, so it does not spam clicks through an open reward window.</div>' +
+                '<div class="acHotkeyRow"><span>Toggle hotkey</span><button type="button" id="acHotkey" class="acHotkeyButton">F6</button></div>' +
+                '<div class="acBottomRow"><span>Clicks: <strong id="acClickCount">0</strong></span>' +
+                '<button type="button" id="acClickNow" class="acSmallButton">CLICK NOW</button></div>' +
+                '<div class="acBottomRow"><span>Last target: <strong id="acLastTarget">None</strong></span></div>' +
+                '<label class="acCheckbox"><input id="acAutoStart" type="checkbox"> Auto-start on load</label>' +
+                '<div class="acHint">Current cursor mode follows your mouse every click. Fixed position repeatedly clicks the saved X/Y location.</div>' +
             '</div>';
 
         document.body.appendChild(panel);
+        document.addEventListener("mousemove", updatePointer);
 
-        document.getElementById("acInterval").value = state.interval;
-        document.getElementById("acBurst").value = state.burst;
-        document.getElementById("acVariance").value = state.variance;
-        document.getElementById("acAutoStart").checked = state.autoStart;
+        [
+            "acInterval", "acButton", "acClickType", "acLocationMode",
+            "acRepeatMode", "acRepeatCount", "acPickedX", "acPickedY", "acAutoStart"
+        ].forEach(function (id) {
+            document.getElementById(id).addEventListener("input", updateSettings);
+            document.getElementById(id).addEventListener("change", updateSettings);
+        });
 
         document.getElementById("acToggle").addEventListener("click", toggle);
-
-        document.getElementById("acClickNow").addEventListener("click", function () {
-            performClick();
-        });
-
-        ["acInterval", "acBurst", "acVariance", "acAutoStart"].forEach(function (id) {
-            document.getElementById(id).addEventListener("change", updateSettingsFromUI);
-            document.getElementById(id).addEventListener("input", updateSettingsFromUI);
-        });
+        document.getElementById("acClickNow").addEventListener("click", performClick);
+        document.getElementById("acPickHere").addEventListener("click", useCurrentCursor);
 
         document.getElementById("acMinimize").addEventListener("click", function () {
             panel.classList.toggle("collapsed");
@@ -288,39 +354,29 @@
 
         document.getElementById("acHotkey").addEventListener("click", function () {
             hotkeyCapture = true;
-            this.textContent = "PRESS A KEY...";
-            this.classList.add("listening");
+            this.textContent = "PRESS KEY...";
         });
 
         document.addEventListener("keydown", function (event) {
             if (hotkeyCapture) {
                 event.preventDefault();
-                event.stopPropagation();
-
-                if (event.key === "Escape") {
-                    hotkeyCapture = false;
-                } else {
-                    state.hotkey = event.key.length === 1
-                        ? event.key.toUpperCase()
-                        : event.key;
-                    hotkeyCapture = false;
+                if (event.key !== "Escape") {
+                    state.hotkey = event.key.length === 1 ? event.key.toUpperCase() : event.key;
                     saveState();
                 }
-
+                hotkeyCapture = false;
                 updateUI();
                 return;
             }
 
             if (event.key === state.hotkey) {
-                var target = event.target;
-                var tag = target && target.tagName ? target.tagName.toLowerCase() : "";
+                var tag = event.target && event.target.tagName ?
+                    event.target.tagName.toLowerCase() : "";
 
-                if (tag === "input" || tag === "textarea" || tag === "select") {
-                    return;
+                if (tag !== "input" && tag !== "textarea" && tag !== "select") {
+                    event.preventDefault();
+                    toggle();
                 }
-
-                event.preventDefault();
-                toggle();
             }
         });
 
@@ -331,13 +387,9 @@
         }
     }
 
-    function init() {
-        buildUI();
-    }
-
     if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", init);
+        document.addEventListener("DOMContentLoaded", buildUI);
     } else {
-        init();
+        buildUI();
     }
 })();
