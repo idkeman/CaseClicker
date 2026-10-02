@@ -24583,4 +24583,70 @@ function init() {
 	drawStackingUpgrades();
 }
 init();
+
+window.caseClickerAutomation = {
+    getMoney: function () {
+        return money;
+    },
+
+    getCasePrice: function () {
+        return (operationCases[currentCase]["price"] - caseDiscount) + (keyPrice - keyDiscount);
+    },
+
+    spendAllMoney: function () {
+        var price = this.getCasePrice();
+        if (!(price > 0)) {
+            return 0;
+        }
+
+        var opened = 0;
+        var oldPopup = popup;
+        popup = false;
+
+        while (inventoryCurrent < inventoryMax && money >= price) {
+            money -= price;
+            randSkin();
+            opened++;
+        }
+
+        popup = oldPopup;
+        inventoryValue();
+        update();
+        skinOverflow();
+
+        return opened;
+    },
+
+    deleteItemsBelow: function (threshold) {
+        var removed = 0;
+        var keys = Object.keys(inventory);
+
+        for (var i = 0; i < keys.length; i++) {
+            var id = keys[i];
+            if (!inventory[id]) {
+                continue;
+            }
+
+            var item;
+            try {
+                item = eval(atob(inventory[id]));
+            } catch (e) {
+                continue;
+            }
+
+            if (item && Number(item.price) < threshold) {
+                delete inventory[id];
+                inventoryCurrent = Math.max(0, inventoryCurrent - 1);
+                $("#" + id).remove();
+                removed++;
+            }
+        }
+
+        inventoryValue();
+        update();
+        skinOverflow();
+
+        return removed;
+    }
+};
 })();
