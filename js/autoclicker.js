@@ -24,6 +24,7 @@
     function loadState() {
         try {
             var saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+            saved.enabled = false;
             return Object.assign({}, defaults, saved);
         } catch (error) {
             return Object.assign({}, defaults);
