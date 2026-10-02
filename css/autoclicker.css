@@ -265,3 +265,25 @@
     color: #59bb32;
     font-weight: bold;
 }
+
+
+.top-right-money-counter {
+    position: fixed;
+    top: 14px;
+    right: 18px;
+    z-index: 10000;
+    min-width: 120px;
+    padding: 7px 12px;
+    box-sizing: border-box;
+    text-align: right;
+    color: #59bb32;
+    background: rgba(10, 16, 19, 0.96);
+    border: 1px solid #186144;
+    border-radius: 4px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    font-family: "Rajdhani", sans-serif;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: .5px;
+    pointer-events: none;
+}
