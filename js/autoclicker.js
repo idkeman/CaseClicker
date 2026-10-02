@@ -17,6 +17,7 @@
         repeatMode: "infinite",
         repeatCount: 100,
         hotkey: "F6",
+        visibilityHotkey: "F7",
         autoStart: false
     };
 
@@ -24,6 +25,9 @@
     var timer = null;
     var clickCount = 0;
     var hotkeyCapture = false;
+    var visibilityHotkeyCapture = false;
+    var pickingPosition = false;
+    var panelVisible = false;
     var mouseX = 0;
     var mouseY = 0;
 
@@ -230,6 +234,16 @@
         state.button = document.getElementById("acButton").value;
         state.clickType = document.getElementById("acClickType").value;
         state.locationMode = document.getElementById("acLocationMode").value;
+
+        if (state.locationMode === "picked") {
+            beginPositionPick();
+        } else {
+            pickingPosition = false;
+            var pickPanel = document.getElementById("caseClickerAutoclicker");
+            if (pickPanel) {
+                pickPanel.style.pointerEvents = "";
+            }
+        }
         state.repeatMode = document.getElementById("acRepeatMode").value;
         state.repeatCount = clamp(Math.round(number("acRepeatCount", 100)), 1, 1000000);
         state.autoStart = document.getElementById("acAutoStart").checked;
@@ -265,6 +279,8 @@
         document.getElementById("acPickedX").value = state.pickedX;
         document.getElementById("acPickedY").value = state.pickedY;
         document.getElementById("acAutoStart").checked = state.autoStart;
+        document.getElementById("acPickStatus").textContent = pickingPosition ? "CLICK ANYWHERE TO SET POSITION" : "Waiting for a screen click";
+        document.getElementById("acPickStatus").classList.toggle("picking", pickingPosition);
 
         document.getElementById("acPickedSettings").style.display =
             state.locationMode === "picked" ? "grid" : "none";
@@ -281,12 +297,42 @@
         }
     }
 
-    function useCurrentCursor() {
-        state.pickedX = Math.round(mouseX);
-        state.pickedY = Math.round(mouseY);
+    function setPickedPosition(x, y) {
+        state.pickedX = clamp(Math.round(x), 0, window.innerWidth - 1);
+        state.pickedY = clamp(Math.round(y), 0, window.innerHeight - 1);
         state.locationMode = "picked";
+        pickingPosition = false;
         saveState();
         updateUI();
+    }
+
+    function beginPositionPick() {
+        pickingPosition = true;
+        var hint = document.getElementById("acPickStatus");
+        if (hint) {
+            hint.textContent = "CLICK ANYWHERE TO SET POSITION";
+            hint.classList.add("picking");
+        }
+        var panel = document.getElementById("caseClickerAutoclicker");
+        if (panel) {
+            panel.style.pointerEvents = "none";
+        }
+    }
+
+    function handlePositionPick(event) {
+        if (!pickingPosition) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        var panel = document.getElementById("caseClickerAutoclicker");
+        if (panel) {
+            panel.style.pointerEvents = "";
+        }
+
+        setPickedPosition(event.clientX, event.clientY);
     }
 
     function buildUI() {
@@ -318,7 +364,7 @@
                 '<div id="acPickedSettings" class="acGrid">' +
                     '<label>X<input id="acPickedX" type="number" min="0" step="1"></label>' +
                     '<label>Y<input id="acPickedY" type="number" min="0" step="1"></label>' +
-                    '<button type="button" id="acPickHere" class="acSmallButton">USE CURRENT CURSOR</button>' +
+                    '<button type="button" id="acPickHere" class="acSmallButton">PICK POSITION</button><small id="acPickStatus" class="acPickStatus">Waiting for a screen click</small>' +
                 '</div>' +
                 '<div class="acGrid">' +
                     '<label>Repeat<select id="acRepeatMode"><option value="infinite">Until stopped</option><option value="count">Number of clicks</option></select></label>' +
@@ -333,6 +379,7 @@
             '</div>';
 
         document.body.appendChild(panel);
+        panel.classList.remove("visible");
         document.addEventListener("mousemove", updatePointer);
 
         [
@@ -345,7 +392,8 @@
 
         document.getElementById("acToggle").addEventListener("click", toggle);
         document.getElementById("acClickNow").addEventListener("click", performClick);
-        document.getElementById("acPickHere").addEventListener("click", useCurrentCursor);
+        document.getElementById("acPickHere").addEventListener("click", beginPositionPick);
+        document.addEventListener("click", handlePositionPick, true);
 
         document.getElementById("acMinimize").addEventListener("click", function () {
             panel.classList.toggle("collapsed");
@@ -366,6 +414,16 @@
                 }
                 hotkeyCapture = false;
                 updateUI();
+                return;
+            }
+
+            if (event.key === state.visibilityHotkey) {
+                event.preventDefault();
+                panelVisible = !panelVisible;
+                var panel = document.getElementById("caseClickerAutoclicker");
+                if (panel) {
+                    panel.classList.toggle("visible", panelVisible);
+                }
                 return;
             }
 
