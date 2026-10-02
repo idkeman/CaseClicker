@@ -28,6 +28,7 @@
     var visibilityHotkeyCapture = false;
     var pickingPosition = false;
     var panelVisible = false;
+    var rightAltPressed = false;
     var mouseX = 0;
     var mouseY = 0;
 
@@ -406,6 +407,21 @@
         });
 
         document.addEventListener("keydown", function (event) {
+            if (event.code === "AltRight") {
+                rightAltPressed = true;
+                return;
+            }
+
+            if (rightAltPressed && event.code === "KeyP") {
+                event.preventDefault();
+                panelVisible = !panelVisible;
+                var panel = document.getElementById("caseClickerAutoclicker");
+                if (panel) {
+                    panel.classList.toggle("visible", panelVisible);
+                }
+                return;
+            }
+
             if (hotkeyCapture) {
                 event.preventDefault();
                 if (event.key !== "Escape") {
@@ -417,16 +433,6 @@
                 return;
             }
 
-            if (event.key === state.visibilityHotkey) {
-                event.preventDefault();
-                panelVisible = !panelVisible;
-                var panel = document.getElementById("caseClickerAutoclicker");
-                if (panel) {
-                    panel.classList.toggle("visible", panelVisible);
-                }
-                return;
-            }
-
             if (event.key === state.hotkey) {
                 var tag = event.target && event.target.tagName ?
                     event.target.tagName.toLowerCase() : "";
@@ -435,6 +441,12 @@
                     event.preventDefault();
                     toggle();
                 }
+            }
+        });
+
+        document.addEventListener("keyup", function (event) {
+            if (event.code === "AltRight") {
+                rightAltPressed = false;
             }
         });
 
