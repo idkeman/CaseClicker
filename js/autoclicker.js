@@ -70,7 +70,14 @@
             return false;
         }
 
-        caseElement.click();
+        // CaseClicker is an older jQuery game. Prefer jQuery's event system so
+        // delegated/legacy click handlers receive the same event as a real click.
+        if (window.jQuery) {
+            window.jQuery(caseElement).trigger("click");
+        } else {
+            caseElement.click();
+        }
+
         clickCount += 1;
 
         var countElement = document.getElementById("acClickCount");
