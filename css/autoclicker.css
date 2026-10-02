@@ -202,3 +202,48 @@
         width: min(330px, calc(100vw - 16px));
     }
 }
+.acGrid select {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    height: 31px;
+    margin-top: 4px;
+    padding: 4px 7px;
+    color: #fff;
+    background: #090d10;
+    border: 1px solid #26363c;
+    border-radius: 3px;
+}
+
+.acGrid select:focus {
+    border-color: #25793b;
+    outline: none;
+}
+
+.acTargetBox {
+    margin: 0 0 12px;
+    padding: 8px 9px;
+    color: #718087;
+    background: #090d10;
+    border: 1px solid #1d292e;
+    border-radius: 3px;
+    font-size: 10px;
+    line-height: 15px;
+}
+
+.acTargetBox strong {
+    color: #fff;
+}
+
+.acTargetBox small {
+    color: #536168;
+}
+
+#acPickedSettings {
+    margin-top: 9px;
+}
+
+#acPickedSettings .acSmallButton {
+    align-self: end;
+    margin-bottom: 0;
+}
