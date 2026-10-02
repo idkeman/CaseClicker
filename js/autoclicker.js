@@ -46,6 +46,35 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }
 
+    function setupMoneyCounter() {
+        var counter = document.getElementById("topRightMoneyCounter");
+        var money = document.getElementById("money");
+
+        if (!counter) {
+            return;
+        }
+
+        function syncMoney() {
+            if (!money) {
+                money = document.getElementById("money");
+            }
+
+            var value = money ? money.textContent.trim() : "";
+            counter.textContent = value || "$0";
+        }
+
+        syncMoney();
+
+        if (money) {
+            var observer = new MutationObserver(syncMoney);
+            observer.observe(money, {
+                childList: true,
+                characterData: true,
+                subtree: true
+            });
+        }
+    }
+
     function clamp(value, min, max) {
         return Math.max(min, Math.min(max, value));
     }
@@ -380,6 +409,7 @@
             '</div>';
 
         document.body.appendChild(panel);
+        setupMoneyCounter();
         panel.classList.remove("visible");
         document.addEventListener("mousemove", updatePointer);
 
