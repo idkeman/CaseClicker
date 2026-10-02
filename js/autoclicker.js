@@ -17,7 +17,7 @@
         repeatMode: "infinite",
         repeatCount: 100,
         hotkey: "F6",
-        visibilityHotkey: "Insert",
+        visibilityHotkey: "Alt+P",
         autoStart: false
     };
 
