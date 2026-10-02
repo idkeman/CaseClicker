@@ -1,5 +1,6 @@
 /* CaseClicker built-in autoclicker */
 .case-clicker-autoclicker {
+    display: none;
     position: fixed;
     right: 18px;
     top: 68px;
@@ -12,6 +13,10 @@
     box-shadow: 0 12px 35px rgba(0, 0, 0, 0.45);
     font-family: "Open Sans", Arial, sans-serif;
     overflow: hidden;
+}
+
+.case-clicker-autoclicker.visible {
+    display: block;
 }
 
 .case-clicker-autoclicker.active {
@@ -246,4 +251,17 @@
 #acPickedSettings .acSmallButton {
     align-self: end;
     margin-bottom: 0;
+}
+
+.acPickStatus {
+    grid-column: 1 / -1;
+    align-self: end;
+    color: #536168;
+    font-size: 9px;
+    line-height: 14px;
+}
+
+.acPickStatus.picking {
+    color: #59bb32;
+    font-weight: bold;
 }
