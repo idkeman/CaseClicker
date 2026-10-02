@@ -44,6 +44,35 @@
         return Number.isFinite(value) ? value : fallback;
     }
 
+    function closeRewardModal() {
+        var modal = document.querySelector(".modalWindow");
+
+        if (!modal) {
+            return false;
+        }
+
+        var style = window.getComputedStyle(modal);
+        var visible = style.display !== "none" && style.visibility !== "hidden";
+
+        if (!visible) {
+            return false;
+        }
+
+        var closeButton = modal.querySelector(".modalClose");
+
+        if (closeButton) {
+            if (window.jQuery) {
+                window.jQuery(closeButton).trigger("click");
+            } else {
+                closeButton.click();
+            }
+        } else {
+            modal.style.display = "none";
+        }
+
+        return true;
+    }
+
     function isGameReady() {
         var caseElement = document.getElementById("case");
 
@@ -51,13 +80,10 @@
             return false;
         }
 
-        var modal = document.querySelector(".modalWindow");
-
-        if (modal) {
-            var modalStyle = window.getComputedStyle(modal);
-            if (modalStyle.display !== "none" && modalStyle.visibility !== "hidden") {
-                return false;
-            }
+        // The original game opens a reward modal after every successful case.
+        // Close it first so the next automated case can actually be opened.
+        if (closeRewardModal()) {
+            return false;
         }
 
         return true;
@@ -70,8 +96,8 @@
             return false;
         }
 
-        // CaseClicker is an older jQuery game. Prefer jQuery's event system so
-        // delegated/legacy click handlers receive the same event as a real click.
+        // The original game registers $("#case").click(...), so jQuery's
+        // event path is the most reliable way to invoke the real game logic.
         if (window.jQuery) {
             window.jQuery(caseElement).trigger("click");
         } else {
@@ -127,6 +153,9 @@
         state.enabled = true;
         saveState();
         updateUI();
+
+        // Do not make the user wait for the first interval.
+        performClick();
         scheduleNext();
     }
 
